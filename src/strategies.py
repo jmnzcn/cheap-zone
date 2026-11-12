@@ -71,20 +71,38 @@ def rsi(series: pd.Series, n: int = 2) -> pd.Series:
     return 100 - 100 / (1 + up / dn.replace(0, np.nan))
 
 
-def rsi2_reversion(p, asset="SPY"):
-    """Connors y Alvarez (2008): compra si RSI(2) < 10 con el precio sobre el promedio
-    de 200 días; vende cuando el cierre supera el promedio de 5 días."""
+def rsi_reversion(p, asset="SPY", n=2, entry=10, exit_n=5, trend_n=200):
+    """Connors y Alvarez (2008): compra si RSI(n) < entry con el precio sobre el promedio
+    de `trend_n` días (None lo desactiva); vende cuando el cierre supera el promedio de `exit_n` días."""
     c = p[asset]
-    entry = (rsi(c, 2) < 10) & (c > c.rolling(200).mean())
-    exit_ = c > c.rolling(5).mean()
+    go = rsi(c, n) < entry
+    if trend_n:
+        go &= c > c.rolling(trend_n).mean()
+    out = c > c.rolling(exit_n).mean()
     pos, state = np.zeros(len(c)), 0.0
-    for i, (e, x) in enumerate(zip(entry.to_numpy(), exit_.to_numpy())):
+    for i, (e, x) in enumerate(zip(go.to_numpy(), out.to_numpy())):
         if state == 0.0 and e:
             state = 1.0
         elif state == 1.0 and x:
             state = 0.0
         pos[i] = state
     return pd.DataFrame({asset: pos}, index=p.index)
+
+
+def rsi2_reversion(p, asset="SPY"):
+    """Parámetros originales: RSI(2) < 10, promedio de 200 días, salida sobre el de 5 días."""
+    return rsi_reversion(p, asset)
+
+
+def trades_from_position(close: pd.Series, pos: pd.Series) -> pd.DataFrame:
+    """Operaciones implícitas en una serie de posición 0/1, ejecutadas al cierre de la señal."""
+    chg = pos.diff().fillna(pos.iloc[0])
+    ins, outs = list(pos.index[chg > 0]), list(pos.index[chg < 0])
+    if len(outs) < len(ins):
+        outs.append(pos.index[-1])
+    rows = [dict(entrada=i, salida=o, dias=close.index.get_loc(o) - close.index.get_loc(i),
+                 retorno=close[o] / close[i] - 1) for i, o in zip(ins, outs)]
+    return pd.DataFrame(rows)
 
 
 def turn_of_month(p, asset="SPY"):
