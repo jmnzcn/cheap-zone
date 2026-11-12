@@ -14,6 +14,7 @@ El objetivo del proyecto es responder con datos una pregunta concreta: **¿las r
 | 2 | Backtest con acciones y comparación con comprar y mantener | Lista |
 | 2b | Diagnóstico de la señal: variantes de entrada, períodos, régimen y otros índices | Lista |
 | 2c | Estrategias con respaldo publicado (tendencia, momentum, reversión a la media, estacionalidad) | Lista |
+| 2d | Robustez de la reversión a la media con RSI (índices, parámetros, costos, efectivo) | Lista |
 | 3 | Simulación con opciones (prima estimada con Black-Scholes) | Pendiente |
 | 4 | Operación simulada con un bróker (paper trading) | Pendiente |
 
@@ -32,6 +33,7 @@ python run_backtest.py --csv datos.csv # datos propios
 python run_backtest.py --demo          # datos simulados, sin conexión
 python diagnostico.py                  # diagnóstico en SPY, QQQ, IWM y DIA
 python estrategias.py                  # estrategias con respaldo publicado
+python rsi2_robustez.py                # robustez de la reversión a la media con RSI
 pytest -q                              # pruebas del motor
 ```
 
@@ -107,6 +109,21 @@ Tras el resultado anterior se evaluaron reglas tomadas de la literatura, con los
 2. **Los filtros de tendencia funcionan como seguro, no como fuente de retorno.** Su ventaja proviene casi por completo de 2008 (-0,9 % y -4,6 % frente a -36,8 % del SPY). Desde 2015 rindieron menos que el índice (6,6 % y 9,3 % anual frente a 13,5 %) y su alfa fue nulo o negativo; el del momentum dual fue de -4,4 % anual (t = -2,02).
 3. **La reversión a la media de corto plazo es la única regla cuyo resultado mejora después de su publicación**: desde 2015, alfa de 2,6 % anual (t = 1,55) con apenas 11 % del tiempo invertido. La evidencia no alcanza significación estadística y se reduce a menos de la mitad si la orden se ejecuta un día después.
 4. Este último resultado es coherente con el diagnóstico de la señal: comprar la caída rinde más que comprar la confirmación.
+
+## Robustez de la reversión a la media con RSI
+
+La única regla con indicios favorables se sometió a cuatro pruebas, sin seleccionar parámetros a partir de los resultados.
+
+| Prueba | Resultado |
+|---|---|
+| Otros índices (SPY, QQQ, IWM, DIA, EFA, EEM) | Alfa positivo en los seis (de 0,5 % a 2,5 % anual); entre 70 % y 74 % de operaciones ganadoras; ningún estadístico t supera 2 |
+| Cartera agrupada de los cuatro índices de EE. UU. | Alfa de 1,13 % anual (t = 0,96); negativo entre 2010 y 2019, positivo en los demás subperíodos |
+| 120 combinaciones de parámetros vecinos | 83,3 % con alfa positivo; alfa mediano inferior a 1 % anual; ninguna con t superior a 2 |
+| Costos por lado | Con 5 pb el alfa es de 1,13 %; con 10 pb, de 0,30 %; con 20 pb, negativo |
+
+Con el efectivo invertido en bonos del Tesoro de 1 a 3 años (SHY), la regla aplicada al SPY rindió 4,07 % anual, con una caída máxima de -15,15 % y un Sharpe de 0,65. Una cartera con 50 % fijo en SPY y 50 % en la regla rindió 7,82 % anual con caída máxima de -28,05 %, frente a 7,64 % y -34,37 % de una mezcla estática de 60 % SPY y 40 % SHY. La peor operación individual fue de -10,16 % (julio y agosto de 2011); la regla no usa stop.
+
+**Lectura.** El efecto tiene el signo esperado en todos los índices y no depende de un parámetro puntual, pero es pequeño, estadísticamente no concluyente y sensible a los costos. Su aporte frente a una mezcla estática de acciones y bonos es marginal.
 
 ## Limitaciones
 
