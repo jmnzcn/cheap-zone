@@ -57,3 +57,39 @@ def synthetic(n: int = 4000, seed: int = 7, drift: float = 0.0003, vol: float = 
     idx = pd.bdate_range("2008-01-01", periods=n)
     return pd.DataFrame({"Open": open_, "High": high, "Low": low, "Close": close,
                          "Volume": 1_000_000}, index=idx)
+
+
+def download_closes(tickers: list[str], start: str = "2003-01-01") -> pd.DataFrame:
+    """Cierres ajustados (incluyen dividendos) de varios activos, una columna por ticker.
+    Los tickers que fallen se omiten con un aviso."""
+    import yfinance as yf
+
+    cols = {}
+    try:
+        raw = yf.download(tickers, start=start, auto_adjust=True, progress=False)["Close"]
+        cols = {t: raw[t].dropna() for t in tickers if t in raw and raw[t].notna().sum() > 300}
+    except Exception as e:
+        print(f"[aviso] descarga conjunta fallida ({e}); se intenta ticker por ticker")
+    for t in tickers:
+        if t not in cols:
+            try:
+                cols[t] = download(t, "1d", start)["Close"]
+            except Exception as e:
+                print(f"[aviso] no se pudo descargar {t}: {e}")
+    df = pd.DataFrame(cols)
+    df.index = pd.to_datetime(df.index, utc=True).tz_localize(None)
+    return df.sort_index()
+
+
+def synthetic_closes(tickers: list[str], n: int = 5800, seed: int = 3) -> pd.DataFrame:
+    """Cierres simulados para varios activos. Solo para verificar que el código corre."""
+    rng = np.random.default_rng(seed)
+    idx = pd.bdate_range("2003-01-01", periods=n)
+    market = rng.normal(0.0003, 0.009, n)
+    out = {}
+    for t in tickers:
+        bond = t in ("AGG", "SHY")
+        r = (0.00008 + rng.normal(0, 0.001 if t == "SHY" else 0.003, n)) if bond \
+            else market * rng.uniform(0.8, 1.2) + rng.normal(0, 0.006, n)
+        out[t] = 100 * np.exp(np.cumsum(r))
+    return pd.DataFrame(out, index=idx)
