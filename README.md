@@ -13,6 +13,7 @@ El objetivo del proyecto es responder con datos una pregunta concreta: **¿las r
 | 1 | Señales de entrada sobre el SPY (diario y por hora) | Lista |
 | 2 | Backtest con acciones y comparación con comprar y mantener | Lista |
 | 2b | Diagnóstico de la señal: variantes de entrada, períodos, régimen y otros índices | Lista |
+| 2c | Estrategias con respaldo publicado (tendencia, momentum, reversión a la media, estacionalidad) | Lista |
 | 3 | Simulación con opciones (prima estimada con Black-Scholes) | Pendiente |
 | 4 | Operación simulada con un bróker (paper trading) | Pendiente |
 
@@ -30,6 +31,7 @@ python run_backtest.py --interval 1h   # SPY por hora (aproximadamente 720 días
 python run_backtest.py --csv datos.csv # datos propios
 python run_backtest.py --demo          # datos simulados, sin conexión
 python diagnostico.py                  # diagnóstico en SPY, QQQ, IWM y DIA
+python estrategias.py                  # estrategias con respaldo publicado
 pytest -q                              # pruebas del motor
 ```
 
@@ -84,6 +86,27 @@ Datos diarios de enero de 2005 a noviembre de 2026. Las cifras comparan el retor
 4. **Como filtro de exposición, el promedio de 200 redujo la caída máxima del SPY de -55 % a -21 %**, con un retorno anual menor (8,9 % frente a 11,2 %) y sin considerar costos ni impuestos. En QQQ, IWM y DIA la reducción de la caída es similar y el costo en retorno, mayor.
 
 Cautelas: las señales cercanas se solapan, por lo que los estadísticos sobreestiman la certeza; se realizaron más de veinte comparaciones; la variante de «primer toque» se definió después de observar el resultado de la regla base; y la comparación contra la media de la propia muestra introduce un sesgo negativo pequeño (del orden de 0,1 puntos a 10 barras en series aleatorias). Los hallazgos se refieren a esta codificación, no al método original, que opera opciones y admite criterio discrecional.
+
+## Estrategias con respaldo publicado
+
+Tras el resultado anterior se evaluaron reglas tomadas de la literatura, con los parámetros de sus autores y sin ajuste alguno. Evaluación del 3 de enero de 2005 al 11 de noviembre de 2026, con un costo de 5 puntos básicos por unidad de cartera negociada y efectivo sin intereses. El alfa se estima por regresión de los retornos diarios contra los del SPY.
+
+| Estrategia | Fuente | Retorno anual | Caída máxima | Sharpe | Exposición | Alfa anual (t) |
+|---|---|---|---|---|---|---|
+| Comprar y mantener SPY | referencia | 10,8 % | -55,2 % | 0,64 | 100 % | |
+| 60/40 SPY y bonos | referencia | 8,1 % | -34,7 % | 0,73 | 100 % | 1,2 % (2,72) |
+| Promedio de 10 meses | Faber (2007) | 7,8 % | -27,7 % | 0,66 | 81,3 % | 3,0 % (1,48) |
+| Momentum de 12 meses | Moskowitz, Ooi y Pedersen (2012) | 9,4 % | -33,7 % | 0,68 | 85,1 % | 2,7 % (1,38) |
+| Momentum dual | Antonacci (2014) | 7,5 % | -33,8 % | 0,54 | 100 % | 1,2 % (0,53) |
+| Momentum sectorial, 3 mejores | Jegadeesh y Titman (1993) | 10,7 % | -45,5 % | 0,63 | 100 % | 1,1 % (0,64) |
+| RSI(2), ejecución al mismo cierre | Connors y Alvarez (2008) | 3,3 % | -14,9 % | 0,54 | 11,3 % | 2,1 % (1,65) |
+| RSI(2), ejecución al día siguiente | Connors y Alvarez (2008) | 2,6 % | -15,1 % | 0,44 | 11,3 % | 1,4 % (1,09) |
+| Cambio de mes | Lakonishok y Smidt (1988) | 1,4 % | -19,3 % | 0,21 | 19,1 % | -0,4 % (-0,25) |
+
+1. **Ninguna regla superó en retorno a comprar y mantener**, y ninguna regla activa muestra un alfa estadísticamente distinto de cero.
+2. **Los filtros de tendencia funcionan como seguro, no como fuente de retorno.** Su ventaja proviene casi por completo de 2008 (-0,9 % y -4,6 % frente a -36,8 % del SPY). Desde 2015 rindieron menos que el índice (6,6 % y 9,3 % anual frente a 13,5 %) y su alfa fue nulo o negativo; el del momentum dual fue de -4,4 % anual (t = -2,02).
+3. **La reversión a la media de corto plazo es la única regla cuyo resultado mejora después de su publicación**: desde 2015, alfa de 2,6 % anual (t = 1,55) con apenas 11 % del tiempo invertido. La evidencia no alcanza significación estadística y se reduce a menos de la mitad si la orden se ejecuta un día después.
+4. Este último resultado es coherente con el diagnóstico de la señal: comprar la caída rinde más que comprar la confirmación.
 
 ## Limitaciones
 
