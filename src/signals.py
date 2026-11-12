@@ -41,14 +41,29 @@ def pm40_signals(df: pd.DataFrame, p: StrategyParams = StrategyParams()) -> pd.D
     touched = touch_now.rolling(p.pullback_lookback).max() == 1.0
     not_broken = d["Close"] >= slow * (1 - p.max_break_pct)
 
-    # 3) Ruptura de la caída: vela verde y sólida que supera los máximos previos
-    prior_high = d["High"].shift(1).rolling(p.break_bars).max()
-    breakout = (d["Close"] > prior_high) & d["green"] & (d["body_ratio"] >= p.min_body_ratio)
+    # 3) Disparador de entrada, según el modo elegido
+    if p.entry_mode == "breakout":      # vela verde y sólida que supera los máximos previos
+        prior_high = d["High"].shift(1).rolling(p.break_bars).max()
+        trigger = touched & (d["Close"] > prior_high) & d["green"] & (d["body_ratio"] >= p.min_body_ratio)
+    else:
+        touch_bar = touch_now == 1.0
+        if p.entry_mode == "touch":     # primer toque del PM40, sin esperar confirmación
+            trigger = touch_bar & ~touch_bar.shift(1, fill_value=False)
+        elif p.entry_mode == "touch_green":
+            trigger = touch_bar & d["green"]
+        elif p.entry_mode == "hammer":  # sombra inferior larga y cierre en la parte alta
+            body = (d["Close"] - d["Open"]).abs()
+            lower = d[["Open", "Close"]].min(axis=1) - d["Low"]
+            upper = d["High"] - d[["Open", "Close"]].max(axis=1)
+            rng = d["High"] - d["Low"]
+            trigger = touch_bar & (lower >= 2 * body) & (upper <= 0.3 * rng) & (rng > 0)
+        else:
+            raise ValueError(f"entry_mode desconocido: {p.entry_mode}")
 
     # 4) No comprar lejos del PM40
-    near = d["Close"] <= slow * (1 + p.max_dist_pct)
+    near = True if p.max_dist_pct is None else d["Close"] <= slow * (1 + p.max_dist_pct)
 
-    signal = trend & touched & not_broken & breakout & near
+    signal = trend & not_broken & trigger & near
 
     # 5) Filtro opcional de piso fuerte (PM100 y PM200)
     if p.require_floor:
@@ -57,6 +72,8 @@ def pm40_signals(df: pd.DataFrame, p: StrategyParams = StrategyParams()) -> pd.D
 
     worst_drop = d["ret1"].rolling(p.pullback_lookback).min()
     d["fall_type"] = np.where(worst_drop <= -p.strong_fall_pct, "fuerte", "normal")
+    if p.fall_filter is not None:
+        signal &= d["fall_type"] == p.fall_filter
     d["pullback_low"] = d["Low"].rolling(p.pullback_lookback).min()
     d["signal"] = signal.fillna(False).astype(bool)
     return d

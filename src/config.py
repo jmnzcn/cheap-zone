@@ -29,8 +29,15 @@ class StrategyParams:
     break_bars: int = 2
     min_body_ratio: float = 0.5   # cuerpo >= 50 % del rango de la vela
 
-    # No comprar lejos del PM40
-    max_dist_pct: float = 0.02
+    # No comprar lejos del PM40 (None desactiva el filtro)
+    max_dist_pct: Optional[float] = 0.02
+
+    # Modo de entrada: "breakout" (confirmación), "touch" (primer toque del PM40),
+    # "touch_green" (toque con vela verde) o "hammer" (martillo en el PM40)
+    entry_mode: str = "breakout"
+
+    # Filtro por tipo de caída previa: None, "normal" o "fuerte"
+    fall_filter: Optional[str] = None
 
     # Clasificación de la caída previa (normal / fuerte)
     strong_fall_pct: float = 0.01
