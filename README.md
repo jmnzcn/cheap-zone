@@ -12,6 +12,7 @@ El objetivo del proyecto es responder con datos una pregunta concreta: **¿las r
 |---|---|---|
 | 1 | Señales de entrada sobre el SPY (diario y por hora) | Lista |
 | 2 | Backtest con acciones y comparación con comprar y mantener | Lista |
+| 2b | Diagnóstico de la señal: variantes de entrada, períodos, régimen y otros índices | Lista |
 | 3 | Simulación con opciones (prima estimada con Black-Scholes) | Pendiente |
 | 4 | Operación simulada con un bróker (paper trading) | Pendiente |
 
@@ -28,8 +29,11 @@ python run_backtest.py                 # SPY diario desde 2005
 python run_backtest.py --interval 1h   # SPY por hora (aproximadamente 720 días)
 python run_backtest.py --csv datos.csv # datos propios
 python run_backtest.py --demo          # datos simulados, sin conexión
+python diagnostico.py                  # diagnóstico en SPY, QQQ, IWM y DIA
 pytest -q                              # pruebas del motor
 ```
+
+El flujo de GitHub Actions (`.github/workflows/backtest.yml`) ejecuta las pruebas, el backtest y el diagnóstico en cada envío a `main` y publica los archivos como artefacto `resultados`.
 
 Cada ejecución imprime un resumen y guarda en `resultados/` el cuadro comparativo (`resumen.csv`), la prueba de ventaja (`ventaja_*.csv`), el detalle de cada operación (`operaciones_*.csv`) y el gráfico de curvas de capital (`curvas.png`).
 
@@ -64,6 +68,22 @@ Cada señal se etiqueta según la caída previa: *fuerte* si hubo una barra con 
 - **Resumen.** Compare `retorno_anual` y `caida_maxima` de cada variante con `comprar_y_mantener`. La columna `exposicion` indica la fracción del tiempo con posición abierta: una estrategia que pasa casi todo el tiempo en efectivo difícilmente supera al índice en retorno, aunque puede hacerlo en riesgo.
 - **Prueba de ventaja.** Compara el retorno medio posterior a una señal con el de una barra cualquiera. El `valor_p` estima la probabilidad de observar esa diferencia por azar. Se calculan varios horizontes y variantes, por lo que un valor bajo aislado no es evidencia suficiente: debe repetirse en varios horizontes y sostenerse en subperíodos distintos.
 - **Datos simulados.** El modo `--demo` usa una caminata aleatoria. Sirve para verificar la instalación; sus cifras carecen de significado financiero.
+
+## Hallazgos (ejecución del 12 de noviembre de 2026)
+
+Datos diarios de enero de 2005 a noviembre de 2026. Las cifras comparan el retorno medio de las 5 barras posteriores a la señal con el de una barra cualquiera del mismo activo.
+
+| Lectura de la entrada | Señales (SPY) | Tras la señal | Barra cualquiera | Diferencia (IC 95 %) |
+|---|---|---|---|---|
+| Con vela de confirmación (regla base) | 93 | -0,48 % | +0,24 % | -0,72 % (-1,13 % a -0,34 %) |
+| Primer toque del promedio de 40, sin confirmación | 143 | +0,39 % | +0,24 % | +0,15 % (-0,18 % a +0,47 %) |
+
+1. **Las entradas con confirmación rinden menos que una barra cualquiera.** El resultado se mantiene al variar la regla de ruptura (1, 2 o 3 barras), al quitar el filtro de cercanía, con el filtro de piso fuerte, con velas de martillo y al agrupar SPY, QQQ, IWM y DIA (314 señales, diferencia de -0,52 %). El efecto se concentra de 2020 en adelante; entre 2005 y 2009 y entre 2015 y 2019 fue prácticamente nulo.
+2. **Comprar en el primer toque, sin esperar confirmación, no se distingue del azar.** La diferencia es positiva en los cinco subperíodos, pero pequeña, y su intervalo de confianza incluye el cero (agrupado: +0,13 %, de -0,06 % a +0,32 %).
+3. **Con las tres reglas de salida probadas, ninguna variante de la regla base superó a comprar y mantener** (11,16 % anual en el SPY); la mayoría terminó con pérdida.
+4. **Como filtro de exposición, el promedio de 200 redujo la caída máxima del SPY de -55 % a -21 %**, con un retorno anual menor (8,9 % frente a 11,2 %) y sin considerar costos ni impuestos. En QQQ, IWM y DIA la reducción de la caída es similar y el costo en retorno, mayor.
+
+Cautelas: las señales cercanas se solapan, por lo que los estadísticos sobreestiman la certeza; se realizaron más de veinte comparaciones; la variante de «primer toque» se definió después de observar el resultado de la regla base; y la comparación contra la media de la propia muestra introduce un sesgo negativo pequeño (del orden de 0,1 puntos a 10 barras en series aleatorias). Los hallazgos se refieren a esta codificación, no al método original, que opera opciones y admite criterio discrecional.
 
 ## Limitaciones
 
