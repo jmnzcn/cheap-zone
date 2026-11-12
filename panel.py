@@ -104,6 +104,10 @@ def main() -> None:
     tickers = list(ASSETS)
     p = data.synthetic_closes(tickers) if a.demo else data.download_closes(tickers)
     p = p.dropna(subset=["SPY"]).ffill()
+    # Si la sesión de Nueva York sigue abierta, la última fila es parcial: se descarta
+    ny = pd.Timestamp.now(tz="America/New_York")
+    if not a.demo and p.index[-1].date() == ny.date() and (ny.hour, ny.minute) < (16, 15):
+        p = p.iloc[:-1]
     blocks = [asset_block(p, t) for t in tickers if t in p.columns]
     payload = dict(
         generado=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M UTC"),
