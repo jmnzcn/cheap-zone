@@ -1,0 +1,203 @@
+<meta name="dash-one-writer">
+<style>
+  .mp { display: flex; flex-direction: column; gap: var(--cds-gap-xl); color: var(--color-fg); font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-body); }
+  .mp-head { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+  .mp-title { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+  .mp-lead { margin: 0; max-width: 68ch; line-height: 1.5; }
+  .mp-b { font-weight: var(--cds-font-weight-medium); }
+  .mp-sec { display: flex; flex-direction: column; gap: var(--cds-gap-md); min-width: 0; }
+  .mp-h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; text-wrap: balance; }
+  .mp-h3 { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); margin: 0; }
+  .mp-note { margin: 0; color: var(--color-fg-muted); max-width: 72ch; line-height: 1.5; }
+  .mp-muted { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .mp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--cds-gap-md); }
+  .mp-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-xs); min-width: 0; }
+  .mp-card-h { display: flex; justify-content: space-between; align-items: baseline; gap: var(--cds-gap-sm); }
+  .mp-name { font-weight: var(--cds-font-weight-medium); }
+  .mp-tk { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); letter-spacing: .04em; }
+  .mp-price { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; min-height: 1.3em; }
+  .mp-line { display: flex; align-items: baseline; gap: var(--cds-gap-sm); flex-wrap: wrap; font-variant-numeric: tabular-nums; min-height: 1.4em; }
+  .mp [data-sign="up"] { color: var(--color-ok); }
+  .mp [data-sign="down"] { color: var(--color-bad); }
+  .mp-pill { display: inline-block; border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; font-size: var(--cds-font-size-caption); white-space: nowrap; color: var(--color-fg-muted); }
+  .mp-pill[data-state="ok"] { color: var(--color-ok); }
+  .mp-pill[data-state="warn"] { color: var(--color-warn); }
+  .mp-scroll { overflow-x: auto; min-width: 0; }
+  .mp-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .mp-table th, .mp-table td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .mp-table th { font-size: var(--cds-font-size-caption); font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); white-space: normal; vertical-align: bottom; min-width: 64px; }
+  .mp-table th.mp-l, .mp-table td.mp-l { text-align: left; }
+  .mp-table td.mp-l:first-child { font-weight: var(--cds-font-weight-medium); }
+  .mp-bar { display: inline-block; width: 48px; height: 6px; border-radius: 3px; background: var(--color-border-line); margin-left: 8px; vertical-align: middle; overflow: hidden; }
+  .mp-bar > i { display: block; height: 100%; background: var(--color-fg-muted); }
+  .mp-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--cds-gap-md); }
+  .mp-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; }
+  .mp-seg button { font: inherit; color: var(--color-fg-muted); background: var(--color-bg); border: 0; border-right: 1px solid var(--color-border-line); padding: 6px 12px; cursor: pointer; }
+  .mp-seg button:last-child { border-right: 0; }
+  .mp-seg button[aria-pressed="true"] { background: var(--color-panel); color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+  .mp-seg button:focus-visible { outline: 2px solid var(--color-fg); outline-offset: -2px; }
+  .mp-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .mp-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .mp-sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+  .mp-chart { position: relative; min-height: 280px; min-width: 0; }
+  .mp-chart.mp-small { min-height: 170px; }
+  .mp-chart svg { display: block; touch-action: pan-y; }
+  .mp-chart .mp-tick { fill: var(--cds-text-secondary); font-size: var(--cds-font-size-caption); font-family: var(--font-anthropic-sans); font-variant-numeric: tabular-nums; }
+  .mp-chart .mp-grid { stroke: var(--cds-chart-grid); stroke-width: 1; }
+  .mp-chart .mp-zero { stroke: var(--cds-chart-axis); stroke-width: 1; }
+  .mp-chart .mp-rule { stroke: var(--cds-chart-reference); stroke-width: 1; pointer-events: none; }
+  .mp-tip { position: absolute; top: 8px; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); box-shadow: var(--cds-shadow-popover); border-radius: var(--cds-radius); padding: 8px 10px; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; white-space: nowrap; z-index: 2; }
+  .mp-tip-d { color: var(--cds-text-secondary); margin-bottom: 4px; }
+  .mp-tip-r { display: flex; align-items: center; gap: 6px; }
+  .mp-tip-r b { margin-left: auto; padding-left: 14px; font-weight: var(--cds-font-weight-medium); }
+  .mp-fail { color: var(--color-fg-muted); margin: 0; padding-top: 40px; text-align: center; }
+  .mp details { border-top: 1px solid var(--color-border-line); padding-top: var(--cds-pad-md); }
+  .mp summary { cursor: pointer; font-weight: var(--cds-font-weight-medium); }
+  .mp dl { margin: var(--cds-gap-md) 0 0; display: grid; gap: var(--cds-gap-sm); max-width: 76ch; }
+  .mp dt { font-weight: var(--cds-font-weight-medium); }
+  .mp dd { margin: 0; color: var(--color-fg-muted); line-height: 1.5; }
+  .mp [data-dash-source-state="refreshing"] { opacity: .5; }
+</style>
+
+<div class="mp">
+  <header class="mp-head" id="encabezado">
+    <h1 class="mp-title">Panel de mercado y riesgo</h1>
+    <p class="mp-lead">Al cierre del <!--FECHA-->, <!--N_SOBRE--> de los <!--N_TOTAL--> índices cotizan por encima de su promedio móvil de 200 días. La volatilidad de 20 días del S&amp;P 500 es de <!--VOL-->, frente a una mediana de <!--VOLMED--> desde 2005.</p>
+  </header>
+
+  <section class="mp-sec" id="estado">
+    <h2 class="mp-h2">Estado del mercado</h2>
+    <div class="mp-cards">
+<!--CARDS-->
+    </div>
+    <p class="mp-note">El PM200 es el promedio de los últimos 200 cierres. Cotizar por encima de él se interpreta como tendencia alcista de largo plazo.</p>
+    <div class="mp-scroll">
+      <table class="mp-table" id="tabla-estado" data-source="activos" data-row-key="ticker">
+        <thead><tr>
+          <th class="mp-l" data-field="ticker">Índice</th>
+          <th data-field="cambio_1m">Último mes</th>
+          <th data-field="cambio_1a">Último año</th>
+          <th data-field="dist_pm40">Frente al PM40</th>
+          <th data-field="dist_pm200">Frente al PM200</th>
+          <th data-field="pm20_sobre_pm40">PM20 sobre PM40</th>
+          <th data-field="dias_en_regimen">Días hábiles en el régimen actual</th>
+        </tr></thead>
+        <tbody data-draw="filas" data-tabla="estado"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mp-sec" id="grafico">
+    <div class="mp-tools">
+      <h2 class="mp-h2">Precio y promedios móviles de <span data-draw="sel">—</span>, últimos dos años</h2>
+      <div class="mp-seg" role="group" aria-label="Índice del gráfico">
+<!--SEG-->
+      </div>
+    </div>
+    <div class="mp-legend">
+      <span><i class="mp-sw" data-k="0"></i>Cierre</span>
+      <span><i class="mp-sw" data-k="1"></i>Promedio de 200 días</span>
+      <span><i class="mp-sw" data-k="2"></i>Promedio de 40 días</span>
+    </div>
+    <div class="mp-chart dash-skeleton" id="grafico-precio" data-draw="precio" data-source="series"></div>
+    <h3 class="mp-h3">Caída desde el máximo histórico</h3>
+    <div class="mp-chart mp-small dash-skeleton" id="grafico-caida" data-draw="caida" data-source="series"></div>
+  </section>
+
+  <section class="mp-sec" id="senales">
+    <h2 class="mp-h2">Señales activas y su historial</h2>
+    <p class="mp-note">Reglas tomadas de la literatura, con los parámetros de sus autores. El historial abarca desde enero de 2005 hasta el último cierre e incluye un costo de 5 puntos básicos por operación. El estado de las reglas mensuales se evalúa con el último cierre disponible.</p>
+    <h3 class="mp-h3">Filtros de tendencia</h3>
+    <div class="mp-scroll">
+      <table class="mp-table" id="tabla-tendencia" data-source="senales" data-row-key="id">
+        <thead><tr>
+          <th class="mp-l" data-field="ticker">Índice</th>
+          <th class="mp-l" data-field="regla">Regla</th>
+          <th class="mp-l" data-field="estado">Estado</th>
+          <th data-field="regla_retorno">Retorno anual de la regla</th>
+          <th data-field="indice_retorno">Retorno anual del índice</th>
+          <th data-field="regla_caida">Caída máxima de la regla</th>
+          <th data-field="indice_caida">Caída máxima del índice</th>
+          <th data-field="exposicion">Tiempo invertido</th>
+        </tr></thead>
+        <tbody data-draw="filas" data-tabla="tendencia"></tbody>
+      </table>
+    </div>
+    <p class="mp-note">En <!--B_MENOS--> de los <!--B_TOTAL--> casos la regla rindió menos que mantener el índice, y en <!--B_CAIDA--> redujo la caída máxima. Su aporte histórico ha sido limitar pérdidas, no aumentar el retorno.</p>
+    <h3 class="mp-h3">Reversión a la media con RSI de 2 días</h3>
+    <div class="mp-scroll">
+      <table class="mp-table" id="tabla-reversion" data-source="senales" data-row-key="id">
+        <thead><tr>
+          <th class="mp-l" data-field="ticker">Índice</th>
+          <th data-field="rsi2">RSI(2) al cierre</th>
+          <th class="mp-l" data-field="estado">Estado</th>
+          <th data-field="operaciones">Operaciones desde 2005</th>
+          <th data-field="pct_ganadoras">Ganadoras</th>
+          <th data-field="retorno_medio">Retorno medio</th>
+          <th data-field="peor_operacion">Peor operación</th>
+          <th data-field="dias_medios">Duración media en días</th>
+          <th data-field="ultima_entrada">Última entrada</th>
+        </tr></thead>
+        <tbody data-draw="filas" data-tabla="reversion"></tbody>
+      </table>
+    </div>
+    <p class="mp-note">La regla compra cuando el RSI(2) cae por debajo de 10 con el precio sobre el PM200 y vende cuando el cierre supera el promedio de 5 días. En las pruebas realizadas, su ventaja frente al índice no alcanzó significación estadística y desapareció con costos de 10 a 20 puntos básicos por lado. No utiliza stop.</p>
+  </section>
+
+  <section class="mp-sec" id="riesgo">
+    <h2 class="mp-h2">Riesgo</h2>
+    <div class="mp-scroll">
+      <table class="mp-table" id="tabla-riesgo" data-source="activos" data-row-key="ticker">
+        <thead><tr>
+          <th class="mp-l" data-field="ticker">Índice</th>
+          <th data-field="caida_actual">Caída desde el máximo</th>
+          <th data-field="dias_desde_maximo">Días hábiles desde el máximo</th>
+          <th data-field="caida_maxima_historica">Peor caída desde 2005</th>
+          <th data-field="volatilidad_20d">Volatilidad de 20 días</th>
+          <th data-field="volatilidad_mediana">Mediana desde 2005</th>
+          <th data-field="volatilidad_percentil">Percentil de la volatilidad</th>
+        </tr></thead>
+        <tbody data-draw="filas" data-tabla="riesgo"></tbody>
+      </table>
+    </div>
+    <p class="mp-note">La volatilidad es la desviación estándar anualizada de los retornos diarios. El percentil indica qué proporción de los días desde 2005 tuvo una volatilidad igual o menor que la actual.</p>
+    <h3 class="mp-h3">Comportamiento histórico según la posición frente al PM200</h3>
+    <div class="mp-scroll">
+      <table class="mp-table" id="tabla-regimen" data-source="activos" data-row-key="ticker">
+        <thead><tr>
+          <th class="mp-l" data-field="ticker">Índice</th>
+          <th data-field="sobre_dias">Días por encima</th>
+          <th data-field="sobre_retorno">Retorno anualizado por encima</th>
+          <th data-field="sobre_volatilidad">Volatilidad por encima</th>
+          <th data-field="bajo_dias">Días por debajo</th>
+          <th data-field="bajo_retorno">Retorno anualizado por debajo</th>
+          <th data-field="bajo_volatilidad">Volatilidad por debajo</th>
+        </tr></thead>
+        <tbody data-draw="filas" data-tabla="regimen"></tbody>
+      </table>
+    </div>
+    <p class="mp-note">Retorno y volatilidad anualizados del día siguiente, desde 2005, según si el cierre estaba por encima o por debajo del promedio de 200 días. La comparación de volatilidades indica cuánto más inestable ha sido cada índice por debajo de su promedio.</p>
+  </section>
+
+  <details id="definiciones">
+    <summary>Definiciones, supuestos y límites</summary>
+    <dl>
+      <dt>Datos</dt>
+      <dd>Cierres diarios ajustados por dividendos de los fondos SPY, QQQ, IWM y DIA, obtenidos de Yahoo Finance. Se recalculan cada día hábil después del cierre de Nueva York.</dd>
+      <dt>Promedio de 10 meses</dt>
+      <dd>Regla de Faber (2007): invertida si el cierre mensual supera su promedio de 10 meses.</dd>
+      <dt>Momentum de 12 meses</dt>
+      <dd>Regla de Moskowitz, Ooi y Pedersen (2012): invertida si el retorno de los últimos 12 meses es positivo.</dd>
+      <dt>RSI de 2 días</dt>
+      <dd>Regla de Connors y Alvarez (2008). El índice de fuerza relativa de 2 días mide la intensidad de las últimas subidas frente a las últimas bajadas, en una escala de 0 a 100.</dd>
+      <dt>Supuestos del historial</dt>
+      <dd>Las reglas de tendencia se ejecutan al cierre del día siguiente a la señal y la de RSI al mismo cierre. El efectivo no genera intereses y no se consideran impuestos.</dd>
+      <dt>Límites</dt>
+      <dd>Los resultados históricos no garantizan resultados futuros. Este panel es informativo y no constituye asesoría financiera ni una recomendación de inversión.</dd>
+    </dl>
+  </details>
+</div>
+
+<script>
+<!--SCRIPT-->
+</script>
