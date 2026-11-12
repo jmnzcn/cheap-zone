@@ -96,6 +96,50 @@ def asset_block(p: pd.DataFrame, t: str) -> dict:
     )
 
 
+def pct(x, n=1):
+    """Fracción a puntos porcentuales redondeados."""
+    return None if x is None else round(x * 100, n)
+
+
+def tables(blocks: list) -> dict:
+    """Tres tablas planas (una fila por índice, por señal y por día) con porcentajes en puntos."""
+    activos, senales, series = [], [], []
+    for b in blocks:
+        t, s, bh, reg = b["ticker"], b["senales"], b["comprar_y_mantener"], b["regimen_pm200"]
+        activos.append(dict(
+            ticker=t, nombre=b["nombre"], fecha=b["fecha"], precio=b["precio"],
+            cambio_1d=pct(b["cambio_1d"], 2), cambio_1m=pct(b["cambio_1m"]), cambio_1a=pct(b["cambio_1a"]),
+            dist_pm40=pct(b["dist_pm40"]), dist_pm200=pct(b["dist_pm200"]),
+            sobre_pm200=b["sobre_pm200"], pm20_sobre_pm40=b["pm20_sobre_pm40"],
+            dias_en_regimen=b["dias_en_regimen"],
+            volatilidad_20d=pct(b["volatilidad_20d"]), volatilidad_mediana=pct(b["volatilidad_mediana"]),
+            volatilidad_percentil=pct(b["volatilidad_percentil"], 0),
+            caida_actual=pct(b["caida_actual"]), caida_maxima_historica=pct(b["caida_maxima_historica"]),
+            dias_desde_maximo=b["dias_desde_maximo"],
+            sobre_retorno=pct(reg["si"]["retorno_anual"]), sobre_volatilidad=pct(reg["si"]["volatilidad"]),
+            sobre_dias=reg["si"]["dias"], bajo_retorno=pct(reg["no"]["retorno_anual"]),
+            bajo_volatilidad=pct(reg["no"]["volatilidad"]), bajo_dias=reg["no"]["dias"]))
+        for key, label in (("tendencia_10m", "Promedio de 10 meses"), ("momentum_12m", "Momentum de 12 meses")):
+            h = s[key]["historial"]
+            senales.append(dict(
+                id=f"{t}-{key}", ticker=t, nombre=b["nombre"], regla=label, tipo="tendencia",
+                activa=s[key]["activa"], estado="Invertida" if s[key]["activa"] else "Fuera",
+                regla_retorno=pct(h["retorno_anual"]), indice_retorno=pct(bh["retorno_anual"]),
+                regla_caida=pct(h["caida_maxima"]), indice_caida=pct(bh["caida_maxima"]),
+                exposicion=pct(h["exposicion"], 0)))
+        r2 = s["rsi2"]
+        senales.append(dict(
+            id=f"{t}-rsi2", ticker=t, nombre=b["nombre"], regla="RSI(2)", tipo="reversion",
+            activa=r2["estado"] in ("en posición", "compra hoy"), estado=r2["estado"].capitalize(),
+            rsi2=b["rsi2"], operaciones=r2["operaciones"], pct_ganadoras=pct(r2["pct_ganadoras"]),
+            retorno_medio=pct(r2["retorno_medio"], 2), peor_operacion=pct(r2["peor_operacion"]),
+            dias_medios=r2["dias_medios"], ultima_entrada=r2["ultima_entrada"]))
+        sr = b["serie"]
+        series += [dict(ticker=t, fecha=f, cierre=c, pm200=m2, pm40=m4, caida=pct(d, 2))
+                   for f, c, m2, m4, d in zip(sr["fechas"], sr["cierre"], sr["pm200"], sr["pm40"], sr["caida"])]
+    return dict(activos=activos, senales=senales, series=series)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true")
@@ -120,6 +164,9 @@ def main() -> None:
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    for name, rows in tables(blocks).items():        # tablas planas para el panel publicado
+        (out.parent / f"{name}.json").write_text(json.dumps(rows, ensure_ascii=False, separators=(",", ":")),
+                                                 encoding="utf-8")
     print(f"Escrito {out} ({out.stat().st_size / 1024:.0f} KB), último cierre {payload['ultimo_cierre']}")
     for b in blocks:
         s = b["senales"]
